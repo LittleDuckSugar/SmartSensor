@@ -2,9 +2,9 @@
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266WiFiMulti.h>
+#include <Thread.h>
 ESP8266WiFiMulti wifiMulti;
 #include <ArduinoJson.h>
-#define Tread_h
 
 #include <InfluxDbClient.h>
 #include <InfluxDbCloud.h>
@@ -30,6 +30,8 @@ Point wifiSensor("wifi");
 #define DHTPIN 5
 
 DHT dht(DHTPIN, DHT22);
+
+Thread mythread = Thread();
 
 const char* ssid = "IoTSmartSensor";
 const char* password = "iotroot9";
@@ -206,6 +208,20 @@ float cTemp() {
   return t;
 }
 
+void sendTemperature() {
+  float t = dht.readTemperature();
+  Serial.print("Temperature");
+  Serial.println(t);
+
+}
+
+void sendHumidity() {
+  float h = dht.readHumidity();
+  Serial.print("Humidity");
+  Serial.println(h);
+
+}
+
 //Page /sensor en GET
 void sensorPage() {
 
@@ -297,6 +313,9 @@ void setup(void) {
   WiFi.begin(ssid, password);
   Serial.println("");
 
+  mythread.onRun(sendTemperature);
+  mythread.setInterval(500);
+
   // Wait for connection
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
@@ -355,4 +374,6 @@ void sender(String cHum, float h) {
 
 void loop() {
   server.handleClient();
+  if(mythread.shouldRun())
+    mythread.run();
 }
